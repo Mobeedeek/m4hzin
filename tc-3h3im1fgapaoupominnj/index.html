@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14181d">
+<title>Télécommande</title>
+<style>
+:root { --fond: #14181d; --carte: #1e242b; --carte2: #252c35; --trait: #333c47; --texte: #eef1f4; --doux: #a3aebb; --vert: #3ecf8e; --orange: #f0a43a; --rouge: #ef5b5b; --bleu: #5aa6ff; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--fond); color: var(--texte); font: 18px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+button { font: inherit; color: inherit; }
+.page { padding: 14px 16px 30px; }
+h1 { font-size: 17px; font-weight: 600; margin: 0 0 10px; color: var(--doux); letter-spacing: .02em; }
+/* aperçu */
+.apercu { position: sticky; top: 0; z-index: 10; background: var(--fond); padding: 6px 0 8px; }
+.bandeau { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 99px; font-size: 15px; font-weight: 650; }
+.tag.ap { background: rgba(90,166,255,.16); color: var(--bleu); border: 1px solid rgba(90,166,255,.45); }
+.tag.ok { background: rgba(62,207,142,.15); color: var(--vert); border: 1px solid rgba(62,207,142,.45); }
+.tag.diff { background: rgba(240,164,58,.14); color: var(--orange); border: 1px solid rgba(240,164,58,.45); }
+.tag.seul { background: rgba(163,174,187,.12); color: var(--doux); border: 1px solid var(--trait); }
+.titreAp { font-size: 19px; font-weight: 650; }
+.ecran { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 14px; overflow: hidden; border: 3px solid rgba(90,166,255,.55); }
+.ecran img, .ecran video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.ecran .plein { position: absolute; right: 10px; bottom: 10px; z-index: 3; background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.25); border-radius: 10px; padding: 8px 12px; font-size: 15px; cursor: pointer; }
+.ecran .nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; display: none; width: 54px; height: 74px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.45); font-size: 34px; cursor: pointer; }
+.ecran .nav.g { left: 8px; } .ecran .nav.d { right: 8px; }
+.grand .ecran .nav.vis { display: block; }
+.grand { position: fixed; inset: 0; z-index: 50; background: #000; padding: 0; display: flex; align-items: center; justify-content: center; }
+.grand .bandeau { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 4; margin: 0; }
+.grand .ecran { width: min(100vw, calc(100vh * 16 / 9)); padding-top: 0; height: min(100vh, calc(100vw * 9 / 16)); border-radius: 0; border: none; }
+.grand #avisAp { display: none; }
+#avisAp { margin-top: 6px; font-size: 15px; color: var(--orange); }
+#avisAp:empty { display: none; }
+/* panneau */
+.carte { background: var(--carte); border: 1px solid var(--trait); border-radius: 14px; padding: 14px 16px; margin-top: 14px; }
+.tele { display: flex; gap: 14px; align-items: flex-start; border-left: 5px solid var(--doux); }
+.tele .mini { flex: none; width: 132px; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; background: #000; position: relative; }
+.tele .mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tele .mini .x { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--doux); text-align: center; padding: 4px; }
+.tele .eti { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--doux); font-weight: 650; }
+.grandTxt { font-size: 21px; font-weight: 700; margin-top: 2px; }
+.ligne { display: flex; align-items: center; gap: 8px; color: var(--doux); font-size: 16px; margin-top: 6px; }
+.point { width: 11px; height: 11px; border-radius: 50%; flex: none; background: var(--doux); }
+#retour { min-height: 22px; margin-top: 6px; font-size: 16px; }
+.grand #retour { display: none; }
+.boutons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.bouton { border: 2px solid var(--trait); background: var(--carte); border-radius: 14px; padding: 20px 10px; font-size: 21px; font-weight: 700; cursor: pointer; min-height: 76px; }
+.bouton.vu, .item.vu { border-color: var(--bleu); }
+.bouton.tv, .item.tv { box-shadow: inset 0 0 0 2px rgba(62,207,142,.0); background: #173628; }
+.serie h2 { font-size: 20px; margin: 0 0 10px; display: flex; align-items: center; justify-content: space-between; }
+.pn { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.pn button { border: 2px solid var(--trait); background: var(--carte2); border-radius: 12px; padding: 14px 8px; font-size: 18px; font-weight: 650; cursor: pointer; min-height: 58px; }
+#indice { font-size: 15px; color: var(--orange); margin: 0 0 10px; display: none; }
+#indice button { margin-top: 8px; border: 1px solid var(--orange); background: transparent; color: var(--orange); border-radius: 10px; padding: 8px 12px; cursor: pointer; font-size: 15px; }
+.liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 2px solid var(--trait); background: var(--carte2); border-radius: 12px; padding: 11px 12px; font-size: 17px; cursor: pointer; min-height: 52px; }
+.item .num { flex: none; width: 30px; height: 30px; border-radius: 8px; background: #11161b; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--doux); }
+.item .t { flex: 1; }
+.pastille { flex: none; font-size: 13px; font-weight: 700; color: #1b1406; background: var(--orange); padding: 3px 9px; border-radius: 99px; }
+.surtv { flex: none; font-size: 12px; font-weight: 700; color: var(--vert); border: 1px solid var(--vert); padding: 2px 7px; border-radius: 99px; display: none; }
+.item.tv .surtv { display: inline-block; }
+.mesures { display: none; }
+.mesures h2 { font-size: 17px; margin: 0 0 8px; }
+.mesures table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.mesures td { padding: 6px 0; border-top: 1px solid var(--trait); vertical-align: top; }
+.mesures td:last-child { text-align: right; font-variant-numeric: tabular-nums; padding-left: 10px; }
+.pied { margin-top: 14px; color: var(--doux); font-size: 14px; }
+/* confirmation */
+#confirm { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.66); display: none; align-items: center; justify-content: center; padding: 16px; }
+#confirm .boite { max-width: 460px; width: 100%; background: var(--carte); border: 2px solid var(--orange); border-radius: 18px; padding: 20px; }
+#confirm h3 { margin: 0 0 8px; font-size: 21px; } #confirm p { margin: 0 0 16px; color: var(--doux); font-size: 17px; }
+#confirm .choix { display: grid; gap: 10px; }
+#confirm button { border-radius: 14px; padding: 18px 10px; font-size: 19px; font-weight: 700; cursor: pointer; border: 2px solid var(--trait); background: var(--carte2); }
+#confirm button.oui { border-color: var(--orange); background: rgba(240,164,58,.18); }
+/* ordinateur / tablette : aperçu en grand, panneau à droite */
+@media (min-width: 900px) {
+  body { font-size: 19px; }
+  .page { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; padding: 18px 24px 30px; align-items: start; }
+  h1 { grid-column: 1 / -1; margin: 0; font-size: 19px; }
+  .apercu { position: sticky; top: 14px; padding: 0; }
+  .panneau .tele { position: sticky; top: 0; z-index: 2; }
+  .ecran { width: min(100%, calc((100vh - 130px) * 16 / 9)); padding-top: 0; aspect-ratio: 16 / 9; }
+  .panneau { max-height: calc(100vh - 70px); overflow: auto; padding-right: 4px; }
+  .panneau > .carte:first-child { margin-top: 0; }
+  .titreAp { font-size: 22px; }
+}
+@media (min-width: 1500px) { .page { grid-template-columns: minmax(0, 1fr) 480px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Télécommande · télé du magasin</h1>
+  <section class="apercu" id="apercu">
+    <div class="bandeau"><span class="tag ap">APERÇU</span><span class="titreAp" id="titreAp">Menu d'hiver</span><span class="tag seul" id="tagEtat">…</span></div>
+    <div class="ecran" id="ecran">
+      <img id="apImg" alt="Aperçu de ce que la télé affichera">
+      <video id="apVid" muted loop playsinline preload="none" style="display:none"></video>
+      <button class="nav g" id="apPrec" type="button" aria-label="Écran précédent">‹</button>
+      <button class="nav d" id="apSuiv" type="button" aria-label="Écran suivant">›</button>
+      <button class="plein" id="plein" type="button">⤢ Plein écran</button>
+    </div>
+    <div id="avisAp"></div>
+    <div id="retour"></div>
+  </section>
+  <section class="panneau">
+    <div class="carte tele" id="carteTele">
+      <div class="mini"><img id="teleImg" alt="" style="display:none"><div class="x" id="teleX">aucune télé</div></div>
+      <div>
+        <div class="eti">Sur la télé du magasin, vraiment</div>
+        <div class="grandTxt" id="affiche">Recherche de la télé…</div>
+        <div class="ligne"><span class="point" id="pointVie"></span><span id="vie">Connexion au relais…</span></div>
+        <div class="ligne" id="detailEcran"></div>
+      </div>
+    </div>
+    <div class="boutons" id="boutons"></div>
+    <div id="series"></div>
+    <div class="carte mesures" id="mesures"><h2>Lecture de la vidéo sur la télé</h2><table id="tabMesures"></table></div>
+    <div class="pied"><div id="relais">Relais : connexion…</div><div id="autres"></div></div>
+  </section>
+</div>
+<div id="confirm"><div class="boite">
+  <h3 id="cTitre">Écran avec des chiffres</h3>
+  <p id="cTexte">Des clients peuvent le voir en boutique. L'afficher sur la télé ?</p>
+  <div class="choix"><button class="oui" id="cOui" type="button">Afficher sur la télé</button><button id="cNon" type="button">Aperçu seulement</button></div>
+</div></div>
+<script src="../paho-mqtt.min.js"></script>
+<script>
+(function () {
+  var CANAL = "clebnrsdham48a3ip2qpdss5", BASE = "../";
+  var $ = function (id) { return document.getElementById(id); };
+  var cat = [], menuImg = null;
+  var vue = { id: "menu", n: 0 };                      /* ce que Jefferson regarde dans l'aperçu */
+  var ecrans = {}, attente = null, client = null, connecte = false;
+  var FICHIER = /^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.(jpg|jpeg|png|mp4)$/;
+  function maint() { return Date.now(); }
+  function hm(t) { var d = new Date(t); return ("0" + d.getHours()).slice(-2) + "h" + ("0" + d.getMinutes()).slice(-2); }
+  function ilya(ms) {
+    ms = Math.max(0, ms); var s = Math.round(ms / 1000);
+    if (s < 60) return s + " s"; var m = Math.round(s / 60);
+    if (m < 60) return m + " min"; var h = Math.floor(m / 60); return h + " h " + ("0" + (m % 60)).slice(-2);
+  }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  /* ---------- catalogue ---------- */
+  function contenu(id) { for (var i = 0; i < cat.length; i++) if (cat[i].id === id) return cat[i]; return null; }
+  function cle(id, n) { return n ? id + "." + n : id; }
+  function decrire(k) {                                /* clé -> {id, n, titre, court, src, video, chiffres} */
+    var m = /^([a-z][a-z0-9_]{0,19})(\.([0-9]{1,2}))?$/.exec(k || ""); if (!m) return null;
+    var id = m[1], n = m[3] ? parseInt(m[3], 10) : 0, c = contenu(id);
+    if (id === "menu") return { id: "menu", n: 0, titre: c && c.titre ? c.titre : "Menu", court: c && c.titre ? c.titre : "Menu", src: menuImg || (c && c.vignette ? BASE + c.vignette : ""), mini: c && c.vignette ? BASE + c.vignette : "" };
+    if (!c) return null;
+    if (c.type === "ecrans" && n && c.ecrans[n - 1]) {
+      var e = c.ecrans[n - 1];
+      return { id: id, n: n, titre: c.titre + " · " + n + "/" + c.ecrans.length + " : " + e.titre, court: e.titre, src: BASE + e.fichier, mini: BASE + e.fichier, chiffres: !!e.chiffres };
+    }
+    if (c.type === "video") return { id: id, n: 0, titre: c.titre, court: c.titre, src: BASE + c.fichier, mini: c.vignette ? BASE + c.vignette : "", video: true };
+    if (c.type === "image") return { id: id, n: 0, titre: c.titre, court: c.titre, src: BASE + c.fichier, mini: c.vignette ? BASE + c.vignette : BASE + c.fichier };
+    return null;
+  }
+  function chargerCatalogue() {
+    var x = new XMLHttpRequest(); x.open("GET", BASE + "contenus.json?t=" + maint(), true);
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4 || x.status !== 200) return;
+      try { var c = JSON.parse(x.responseText).contenus; } catch (e) { return; }
+      cat = []; for (var i = 0; i < c.length; i++) if (/^[a-z][a-z0-9_]{0,19}$/.test(c[i].id || "")) cat.push(c[i]);
+      construire(); montrerApercu(); dessiner();
+    };
+    x.send();
+    var y = new XMLHttpRequest(); y.open("GET", BASE + "etat.json?t=" + maint(), true);
+    y.onreadystatechange = function () {
+      if (y.readyState !== 4 || y.status !== 200) return;
+      try { var e = JSON.parse(y.responseText); if (e.image && FICHIER.test(e.image)) { menuImg = BASE + e.image; if (vue.id === "menu") montrerApercu(); } } catch (er) {}
+    };
+    y.send();
+  }
+
+  /* ---------- construction des commandes à partir du catalogue ---------- */
+  function construire() {
+    var b = $("boutons"), s = $("series"), hb = "", hs = "";
+    for (var i = 0; i < cat.length; i++) {
+      var c = cat[i];
+      if (c.type === "ecrans") {
+        hs += '<div class="carte serie" data-serie="' + esc(c.id) + '"><h2><span>' + esc(c.titre) + '</span><span style="font-size:14px;color:var(--doux)">' + c.ecrans.length + ' écrans</span></h2>'
+            + '<div class="pn"><button type="button" data-pn="-1" data-id="' + esc(c.id) + '">‹ Précédent</button><button type="button" data-pn="1" data-id="' + esc(c.id) + '">Suivant ›</button></div>'
+            + '<div id="indice"></div><ul class="liste">';
+        for (var k = 0; k < c.ecrans.length; k++) {
+          var e = c.ecrans[k];
+          hs += '<li><button type="button" class="item" data-cle="' + esc(cle(c.id, k + 1)) + '"><span class="num">' + (k + 1) + '</span><span class="t">' + esc(e.titre) + '</span>'
+              + (e.chiffres ? '<span class="pastille">chiffres</span>' : '') + '<span class="surtv">TÉLÉ</span></button></li>';
+        }
+        hs += '</ul></div>';
+      } else if (c.type === "menu" || c.type === "video" || c.type === "image") {
+        hb += '<button type="button" class="bouton" data-cle="' + esc(c.id) + '">' + esc(c.titre) + '</button>';
+      }
+    }
+    b.innerHTML = hb; s.innerHTML = hs;
+    var tous = document.querySelectorAll("[data-cle]");
+    for (var j = 0; j < tous.length; j++) tous[j].onclick = function () { var d = decrire(this.getAttribute("data-cle")); if (d) choisir(d.id, d.n); };
+    var pns = document.querySelectorAll("[data-pn]");
+    for (var q = 0; q < pns.length; q++) pns[q].onclick = function () { pas(this.getAttribute("data-id"), parseInt(this.getAttribute("data-pn"), 10)); };
+  }
+
+  /* ---------- aperçu ---------- */
+  function montrerApercu() {
+    var d = decrire(cle(vue.id, vue.n)); if (!d) return;
+    var im = $("apImg"), v = $("apVid");
+    $("titreAp").textContent = d.titre;
+    if (d.video) {
+      im.style.display = "none"; v.style.display = "block";
+      if (v.getAttribute("src") !== d.src) { v.setAttribute("preload", "auto"); v.setAttribute("src", d.src); }
+      v.muted = true; try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+    } else {
+      try { v.pause(); } catch (e) {}
+      v.style.display = "none"; im.style.display = "block";
+      if (d.src && im.getAttribute("src") !== d.src) im.setAttribute("src", d.src);
+    }
+    var serie = contenu(vue.id), estSerie = serie && serie.type === "ecrans";
+    $("apPrec").className = "nav g" + (estSerie ? " vis" : ""); $("apSuiv").className = "nav d" + (estSerie ? " vis" : "");
+    var tous = document.querySelectorAll("[data-cle]"), k = cle(vue.id, vue.n);
+    for (var i = 0; i < tous.length; i++) {
+      var base = tous[i].className.replace(/\s*\bvu\b/g, "");
+      tous[i].className = base + (tous[i].getAttribute("data-cle") === k ? " vu" : "");
+    }
+    dessiner();
+  }
+  function teleVivante() {
+    var p = principal(); return p && maint() - p.recu < seuil(p.m) ? p : null;
+  }
+  function choisir(id, n, force) {
+    vue = { id: id, n: n }; montrerApercu(); indice("");
+    var d = decrire(cle(id, n)), p = teleVivante();
+    if (!p) { $("retour").innerHTML = "<span style='color:var(--doux)'>Aperçu seulement : aucune télé ouverte, rien n'est envoyé.</span>"; return; }
+    if (d.chiffres && !force) { demander(d); return; }
+    envoyer(id, n);
+  }
+  function pas(id, sens) {                             /* précédent / suivant : ne s'arrête JAMAIS sur un écran « chiffres » */
+    var c = contenu(id); if (!c || c.type !== "ecrans") return;
+    var N = c.ecrans.length;
+    if (vue.id !== id || !vue.n) { var k0 = sens > 0 ? 1 : N; while (k0 >= 1 && k0 <= N && c.ecrans[k0 - 1].chiffres) k0 += sens; if (k0 >= 1 && k0 <= N) choisir(id, k0); return; }
+    var k = vue.n + sens;
+    if (k < 1 || k > N) { indice(sens > 0 ? "C'est le dernier écran." : "C'est le premier écran."); return; }
+    if (c.ecrans[k - 1].chiffres) {
+      var saut = k; while (saut >= 1 && saut <= N && c.ecrans[saut - 1].chiffres) saut += sens;
+      var noms = []; for (var j = Math.min(k, saut - sens); j <= Math.max(k, saut - sens); j++) noms.push("« " + c.ecrans[j - 1].titre + " »");
+      var h = "L'écran " + (sens > 0 ? "suivant" : "précédent") + " contient des chiffres (" + noms.join(", ") + ") : choisis-le exprès dans la liste.";
+      if (saut >= 1 && saut <= N) h += '<br><button type="button" id="sauter">Passer à « ' + esc(c.ecrans[saut - 1].titre) + ' »</button>';
+      indice(h);
+      if ($("sauter")) $("sauter").onclick = function () { choisir(id, saut); };
+      return;
+    }
+    choisir(id, k);
+  }
+  function indice(h) { var e = $("indice"); if (!e) return; e.innerHTML = h; e.style.display = h ? "block" : "none"; $("avisAp").innerHTML = h ? h.replace(/<br>.*$/, "") : ""; }
+  function demander(d) {
+    $("cTitre").textContent = "« " + d.court + " » : écran avec des chiffres";
+    $("cTexte").textContent = "Des clients peuvent le voir en boutique. L'afficher sur la télé, ou le garder dans l'aperçu seulement ?";
+    $("confirm").style.display = "flex";
+    $("cOui").onclick = function () { $("confirm").style.display = "none"; envoyer(d.id, d.n); };
+    $("cNon").onclick = function () { $("confirm").style.display = "none"; $("retour").innerHTML = "<span style='color:var(--doux)'>Aperçu seulement : la télé n'a pas changé.</span>"; };
+  }
+  $("apPrec").onclick = function (ev) { ev.stopPropagation(); pas(vue.id, -1); };
+  $("apSuiv").onclick = function (ev) { ev.stopPropagation(); pas(vue.id, 1); };
+  $("plein").onclick = function () {
+    var a = $("apercu"), grand = /\bgrand\b/.test(a.className);
+    if (grand) { a.className = "apercu"; $("plein").textContent = "⤢ Plein écran"; try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} }
+    else { a.className = "apercu grand"; $("plein").textContent = "✕ Fermer"; try { if (a.requestFullscreen) a.requestFullscreen().catch(function () {}); } catch (e) {} }
+  };
+  document.addEventListener("fullscreenchange", function () { if (!document.fullscreenElement && /\bgrand\b/.test($("apercu").className)) { $("apercu").className = "apercu"; $("plein").textContent = "⤢ Plein écran"; } });
+
+  /* ---------- envoi ---------- */
+  function envoyer(id, n) {
+    var cid = maint().toString(36) + Math.floor(Math.random() * 1296).toString(36), texte = cle(id, n) + ":" + cid, ok = false;
+    attente = { id: cid, voulu: cle(id, n), envoye: maint() };
+    if (client && connecte) {
+      try { var x = new Paho.MQTT.Message(texte); x.destinationName = CANAL + "c"; x.qos = 1; x.retained = true; client.send(x); ok = true; } catch (e) {}
+    }
+    try { var r = new XMLHttpRequest(); r.open("POST", "https://ntfy.sh/" + CANAL + "c", true); r.send(texte); ok = true; } catch (e) {}
+    var d = decrire(cle(id, n));
+    $("retour").innerHTML = ok ? "Envoyé à la télé : " + esc(d ? d.court : texte) + "…" : "<span style='color:var(--rouge)'>Envoi impossible (pas de réseau ?)</span>";
+    dessiner();
+  }
+
+  /* ---------- accusés de la télé ---------- */
+  function recu(texte, enDirect) {
+    var m; try { m = JSON.parse(texte); } catch (e) { return; }
+    if (!m || !/^[a-z0-9]{4}$/.test(m.ecran || "") || !/^[a-z][a-z0-9_]{0,19}(\.[0-9]{1,2})?$/.test(m.affiche || "")) return;
+    var now = maint(), e = ecrans[m.ecran] || {};
+    e.m = m;
+    if (enDirect) { e.recu = now; e.decalage = now - m.vu; }
+    else { e.recu = m.vu + (e.decalage || 0); if (e.decalage === undefined) e.decalage = 0; }
+    ecrans[m.ecran] = e;
+    if (attente && m.cmd === attente.id) {
+      if (m.affiche === attente.voulu) {
+        $("retour").innerHTML = "<span style='color:var(--vert)'>✓ La télé a basculé en " + ((now - attente.envoye) / 1000).toFixed(1).replace(".", ",") + " s</span>";
+        attente = null;
+      } else if (m.erreur) {
+        $("retour").innerHTML = "<span style='color:var(--rouge)'>La télé a reçu l'ordre mais : " + esc(m.erreur) + "</span>";
+        attente = null;
+      }
+    } else if (attente && enDirect && m.depuis + (e.decalage || 0) > attente.envoye && m.affiche !== attente.voulu) {
+      $("retour").innerHTML = "<span style='color:var(--orange)'>La télé vient d'être ouverte : elle démarre toujours sur le menu. Rechoisis ce que tu veux montrer.</span>";
+      attente = null;
+    }
+    dessiner();
+  }
+  function seuil(m) { return m && m.voie === "repli" ? 660000 : 25000; }
+  function principal() { var best = null, k; for (k in ecrans) if (!best || ecrans[k].recu > best.recu) best = ecrans[k]; return best; }
+
+  function dessiner() {
+    var now = maint(), p = principal(), k, autres = [], vivant = false, m = null;
+    var kv = cle(vue.id, vue.n);
+    if (p) { m = p.m; vivant = now - p.recu < seuil(m); }
+    /* état de l'aperçu par rapport à la télé */
+    var tag = $("tagEtat");
+    if (!vivant) { tag.className = "tag seul"; tag.textContent = "aperçu seulement · aucune télé ouverte"; }
+    else if (m.affiche === kv) { tag.className = "tag ok"; tag.textContent = "✓ c'est aussi sur la télé"; }
+    else { tag.className = "tag diff"; tag.textContent = "la télé affiche autre chose"; }
+    /* carte télé */
+    var ct = $("carteTele");
+    if (!p) {
+      $("affiche").textContent = "Aucune télé ouverte";
+      $("vie").textContent = connecte ? "Aucune télé n'a encore répondu. Tu peux parcourir l'aperçu librement." : "Connexion au relais…";
+      $("pointVie").style.background = connecte ? "var(--rouge)" : "var(--doux)"; ct.style.borderLeftColor = "var(--rouge)";
+      $("teleImg").style.display = "none"; $("teleX").style.display = "flex"; $("teleX").textContent = "aucune télé"; $("detailEcran").textContent = "";
+    } else {
+      var d = decrire(m.affiche), age = now - p.recu, depuisLocal = m.depuis + (p.decalage || 0);
+      if (d && d.mini) { $("teleImg").src = d.mini; $("teleImg").style.display = "block"; $("teleX").style.display = vivant ? "none" : "flex"; $("teleX").textContent = vivant ? "" : "plus de nouvelles"; }
+      $("teleImg").style.opacity = vivant ? "1" : ".3";
+      if (vivant) {
+        $("affiche").textContent = d ? d.titre : m.affiche;
+        $("vie").textContent = "En ligne · depuis " + hm(depuisLocal) + " (" + ilya(now - depuisLocal) + ") · signe de vie il y a " + ilya(age);
+        $("pointVie").style.background = "var(--vert)"; ct.style.borderLeftColor = "var(--vert)";
+      } else if (age < Math.max(300000, seuil(m) * 2)) {
+        $("affiche").textContent = "Télé silencieuse depuis " + ilya(age);
+        $("vie").textContent = "Dernier état connu : " + (d ? d.court : m.affiche) + " (signe de vie à " + hm(p.recu) + ")";
+        $("pointVie").style.background = "var(--orange)"; ct.style.borderLeftColor = "var(--orange)";
+      } else {
+        $("affiche").textContent = "Aucune télé ouverte";
+        $("vie").textContent = "Dernier signe de vie : " + hm(p.recu) + " (il y a " + ilya(age) + "). Tu peux parcourir l'aperçu librement.";
+        $("pointVie").style.background = "var(--rouge)"; ct.style.borderLeftColor = "var(--rouge)";
+      }
+      $("detailEcran").textContent = "Écran " + m.taille + (m.nav ? " · " + m.nav : "") + (m.voie === "repli" ? " · voie lente (relais de secours)" : "") + (m.erreur ? " · ⚠ " + m.erreur : "");
+    }
+    /* repères « sur la télé » dans les commandes */
+    var tous = document.querySelectorAll("[data-cle]");
+    for (var i = 0; i < tous.length; i++) {
+      var base = tous[i].className.replace(/\s*\btv\b/g, "");
+      tous[i].className = base + (vivant && tous[i].getAttribute("data-cle") === m.affiche ? " tv" : "");
+    }
+    for (k in ecrans) if (ecrans[k] !== p && now - ecrans[k].recu < seuil(ecrans[k].m)) autres.push(ecrans[k].m.taille + " (" + (ecrans[k].m.nav || "?") + ")");
+    $("autres").textContent = autres.length ? "Autres écrans ouverts sur la page : " + autres.join(" ; ") : "";
+    mesures(m, vivant);
+    if (attente && now - attente.envoye > 20000) { $("retour").innerHTML = "<span style='color:var(--orange)'>Pas de confirmation de la télé après 20 s</span>"; attente = null; }
+  }
+  function mesures(m, vivant) {
+    var L = m && m.lecture;
+    if (!L) { $("mesures").style.display = "none"; return; }
+    var ind = "<span style='color:var(--doux)'>mesure indisponible sur cette télé</span>", rows = [];
+    function ms(v) { return v === null || v === undefined ? ind : v + " ms"; }
+    rows.push(["Lecture depuis", ilya(L.duree_s * 1000) + " · " + L.boucles + " tour" + (L.boucles > 1 ? "s" : "") + " de boucle"]);
+    rows.push(["Fluidité (vidéo à 29,97 images/s)", L.ips === null ? ind : String(L.ips).replace(".", ",") + " images/s"]);
+    rows.push(["Images perdues", L.images ? L.images.perdues + " sur " + L.images.total : ind]);
+    rows.push(["Temps mort au raccord de boucle (pire)", L.boucles ? ms(L.raccord_max_ms) + (L.raccord_max_ms !== null ? " <span style='color:var(--doux)'>(normal ≈ 33)</span>" : "") : "<span style='color:var(--doux)'>pas encore de raccord</span>"]);
+    rows.push(["Plus long figement hors raccord", ms(L.gel_max_ms)]);
+    rows.push(["Blocages (attente de données)", L.blocages + (L.blocages ? " · " + (L.blocage_ms / 1000).toFixed(1).replace(".", ",") + " s au total" : "")]);
+    if (L.methode === "approx") rows.push(["Précision", "<span style='color:var(--doux)'>approximative (± 20 ms) : cette télé ne donne pas le détail image par image</span>"]);
+    var h = ""; for (var i = 0; i < rows.length; i++) h += "<tr><td>" + rows[i][0] + "</td><td>" + rows[i][1] + "</td></tr>";
+    $("tabMesures").innerHTML = h; $("mesures").style.display = "block"; $("mesures").style.opacity = vivant ? "1" : ".5";
+  }
+
+  /* ---------- relais ---------- */
+  function connecter() {
+    try {
+      client.connect({ useSSL: true, timeout: 15, keepAliveInterval: 30, cleanSession: true,
+        onSuccess: function () { connecte = true; $("relais").textContent = "Relais : connecté"; client.subscribe(CANAL + "a", { qos: 0 }); dessiner(); },
+        onFailure: function () { connecte = false; $("relais").textContent = "Relais rapide injoignable, nouvel essai…"; setTimeout(connecter, 8000); } });
+    } catch (e) { setTimeout(connecter, 8000); }
+  }
+  if (window.Paho) {
+    client = new Paho.MQTT.Client("broker.emqx.io", 8084, "/mqtt", "tc" + Math.floor(Math.random() * 1e12));
+    client.onMessageArrived = function (m) { if (m.destinationName === CANAL + "a" && m.payloadString) recu(m.payloadString, !m.retained); };
+    client.onConnectionLost = function () { connecte = false; $("relais").textContent = "Relais : reconnexion…"; setTimeout(connecter, 3000); };
+    connecter();
+  }
+  if (window.EventSource) {
+    try {
+      var es = new EventSource("https://ntfy.sh/" + CANAL + "a/sse");
+      es.onmessage = function (ev) { try { var o = JSON.parse(ev.data); if (o.event === "message" && o.message) recu(o.message, true); } catch (e) {} };
+    } catch (e) {}
+  }
+  chargerCatalogue();
+  setInterval(dessiner, 1000);
+  dessiner();
+})();
+</script>
+</body>
+</html>

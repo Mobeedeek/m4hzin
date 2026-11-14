@@ -1,0 +1,104 @@
+{
+ "_lisez_moi": "Catalogue des contenus que la télé du magasin peut afficher (liste fermée). Ajouter un contenu : déposer ses fichiers dans contenus/<nom>/ puis ajouter une entrée ici, et publier. Types : image (fichier), video (fichier mp4 1080p, vignette), ecrans (liste d'écrans 1920x1080 : fichier, titre, chiffres). « chiffres »: true = jamais atteint par suivant/précédent, confirmation avant envoi à la télé. Le menu est toujours le premier contenu et l'affichage par défaut. Mode d'emploi : affichage_fixe/LISEZ_MOI_affichage_fixe_2026-11-14.md",
+ "contenus": [
+  {
+   "id": "menu",
+   "titre": "Menu d'hiver",
+   "type": "menu",
+   "vignette": "contenus/vignette_menu_victor_v2.jpg"
+  },
+  {
+   "id": "menu_noel",
+   "titre": "Menu de Noël",
+   "type": "image",
+   "fichier": "contenus/menu_noel/menu-noel-jet5-1080.png",
+   "vignette": "contenus/menu_noel/vignette.jpg"
+  },
+  {
+   "id": "menu_sans_victor",
+   "titre": "Menu d'hiver sans Victor",
+   "type": "image",
+   "fichier": "menu-hiver-jet5-bda139ca07-1080.png",
+   "vignette": "contenus/vignette_menu.jpg"
+  },
+  {
+   "id": "video",
+   "titre": "Vidéo d'essai",
+   "type": "video",
+   "fichier": "video-essai-191724-1080.mp4",
+   "vignette": "contenus/video_essai/vignette.jpg"
+  },
+  {
+   "id": "atelier",
+   "titre": "Atelier 3D",
+   "type": "ecrans",
+   "ecrans": [
+    {
+     "fichier": "contenus/atelier/ecran-01.jpg",
+     "titre": "Et si on fabriquait nos propres objets ?",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-02.jpg",
+     "titre": "Pour vous, rien ne change",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-03.jpg",
+     "titre": "D'abord pour nous (1/3)",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-04.jpg",
+     "titre": "D'abord pour nous (2/3)",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-05.jpg",
+     "titre": "D'abord pour nous (3/3)",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-06.jpg",
+     "titre": "Et peut-être pour les clients (1/2)",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-07.jpg",
+     "titre": "Et peut-être pour les clients (2/2)",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-08.jpg",
+     "titre": "Buddy en vrai (1/2)",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-09.jpg",
+     "titre": "Buddy en vrai (2/2)",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-10.jpg",
+     "titre": "Au nom du magasin",
+     "chiffres": false
+    },
+    {
+     "fichier": "contenus/atelier/ecran-11.jpg",
+     "titre": "Concrètement",
+     "chiffres": true
+    },
+    {
+     "fichier": "contenus/atelier/ecran-12.jpg",
+     "titre": "Ce que ça peut rapporter",
+     "chiffres": true
+    },
+    {
+     "fichier": "contenus/atelier/ecran-13.jpg",
+     "titre": "Vous en pensez quoi ?",
+     "chiffres": false
+    }
+   ]
+  }
+ ]
+}
