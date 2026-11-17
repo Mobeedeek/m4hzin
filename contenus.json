@@ -1,0 +1,67 @@
+{
+ "_lisez_moi": "Catalogue des contenus que la télé du magasin peut afficher (liste fermée). Ajouter un contenu : déposer ses fichiers dans contenus/<nom>/ puis ajouter une entrée ici, et publier. Types : image (fichier), video (fichier mp4 1080p, vignette), ecrans (liste d'écrans 1920x1080 : fichier, titre, chiffres). « chiffres »: true = jamais atteint par suivant/précédent, confirmation avant envoi à la télé. Le menu est toujours le premier contenu et l'affichage par défaut. Mode d'emploi : affichage_fixe/LISEZ_MOI_affichage_fixe_2026-11-14.md",
+ "contenus": [
+  {
+   "id": "menu",
+   "titre": "Menu actuel du 14/11 (retour arrière)",
+   "type": "menu",
+   "vignette": "contenus/vignette_menu_victor_v2.jpg"
+  },
+  {
+   "id": "menu_jour",
+   "titre": "Menu du jour (clients) · 17/11",
+   "type": "image",
+   "fichier": "contenus/menu_du_jour/menu-du-jour-a62d12077f-1080.png",
+   "vignette": "contenus/menu_du_jour/vignette-a62d12077f.jpg"
+  },
+  {
+   "id": "prop1711_1",
+   "titre": "Menu final : Buddy tient son ardoise",
+   "type": "image",
+   "fichier": "contenus/propositions_17_11/proposition-1-175b0b767d-1080.png",
+   "vignette": "contenus/propositions_17_11/vignette-proposition-1-175b0b767d.jpg"
+  },
+  {
+   "id": "prop1711_2",
+   "titre": "Variante : ardoise posée à côté de Buddy",
+   "type": "image",
+   "fichier": "contenus/propositions_17_11/proposition-2-a08bbe99ba-1080.png",
+   "vignette": "contenus/propositions_17_11/vignette-proposition-2-a08bbe99ba.jpg"
+  },
+  {
+   "id": "menu1611_a",
+   "titre": "Nouveau menu 16/11 : ardoise A",
+   "type": "image",
+   "fichier": "contenus/menu_16_11/menu-hiver-a-dbe8e6f95d-1080.png",
+   "vignette": "contenus/menu_16_11/vignette-a.jpg"
+  },
+  {
+   "id": "menu1611_familles",
+   "titre": "Nouveau menu 16/11 : fleurs à gauche, hash à droite",
+   "type": "image",
+   "fichier": "contenus/menu_16_11/menu-hiver-familles-bf87ce3b14-1080.png",
+   "vignette": "contenus/menu_16_11/vignette-familles.jpg"
+  },
+  {
+   "id": "menu_noel",
+   "titre": "Menu de Noël",
+   "type": "image",
+   "fichier": "contenus/menu_noel/menu-noel-jet5-1080.png",
+   "vignette": "contenus/menu_noel/vignette.jpg"
+  },
+  {
+   "id": "menu_sans_victor",
+   "titre": "Menu d'hiver sans Victor",
+   "type": "image",
+   "fichier": "menu-hiver-jet5-bda139ca07-1080.png",
+   "vignette": "contenus/vignette_menu.jpg"
+  },
+  {
+   "id": "video",
+   "titre": "Vidéo d'essai",
+   "type": "video",
+   "fichier": "video-essai-191724-1080.mp4",
+   "vignette": "contenus/video_essai/vignette.jpg"
+  }
+ ]
+}

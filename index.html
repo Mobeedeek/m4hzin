@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Menu</title>
+<style>
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; cursor: none; }
+#cadre { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; -webkit-overflow-scrolling: touch; z-index: 2; }
+#menu { position: absolute; display: block; left: 0; top: 0; }
+#video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #000; z-index: 1; object-fit: contain; }
+#ecranBox { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #000; z-index: 3; display: none; }
+#ecranImg { position: absolute; display: block; left: 0; top: 0; }
+#attente { position: absolute; left: 0; right: 0; top: 46%; text-align: center; color: #555; font: 28px sans-serif; z-index: 4; }
+#astuce { position: absolute; left: 0; right: 0; display: none; text-align: center; color: #888; font: 14px sans-serif; padding: 0 16px; z-index: 4; }
+</style>
+</head>
+<body>
+<video id="video" muted loop playsinline preload="none"></video>
+<div id="cadre"><img id="menu" alt="Menu de La Chanvrerie"></div>
+<div id="ecranBox"><img id="ecranImg" alt=""></div>
+<div id="attente">Chargement du menu…</div>
+<div id="astuce">Glissez pour voir tout le décor · tournez le téléphone pour l'avoir en entier</div>
+<script src="paho-mqtt.min.js"></script>
+<script>
+/* Page de la télé du magasin (14/11/2026, Bâtisseur).
+   - Par défaut : l'image du menu (celle annoncée par etat.json), vérifiée toutes les 2 minutes, changée seulement une
+     fois la nouvelle chargée ; rechargement complet toutes les 6 h ; touche OK = plein écran.
+   - Télécommande : seuls les contenus du catalogue publié avec la page (contenus.json : menu, vidéos, images, séries
+     d'écrans) peuvent s'afficher. Une commande ne transporte qu'un nom de contenu et un numéro d'écran ; un nom inconnu
+     du catalogue est ignoré. Ajouter un contenu = l'ajouter au catalogue, sans toucher à cette page.
+   - Voie rapide : relais public MQTT (broker.emqx.io, connexion chiffrée). Repli si la voie rapide ne se connecte pas :
+     relais ntfy.sh interrogé toutes les 15 s.
+   - Page ouverte ou rouverte (télé redémarrée) : le MENU, jusqu'à la commande suivante. Relais injoignable : le menu
+     reste (ou ce qui est affiché reste), rien ne casse.
+   - Accusés : la page dit ce qu'elle affiche vraiment, depuis quand, et des mesures de lecture de la vidéo. */
+(function () {
+  var img = document.getElementById("menu"), cadre = document.getElementById("cadre"), vid = document.getElementById("video");
+  var attente = document.getElementById("attente"), astuce = document.getElementById("astuce");
+  var debut = new Date().getTime(), menuV = null, charge = false, mode = null;
+  var etat = null, canal = null, videoSrc = null;
+  var affiche = "menu", depuis = debut, derniereCmd = "", voie = "aucune", erreur = "";
+  var client = null, connecte = false, premiereConnexion = true, repliActif = false, repliDepuis = 0;
+  var TAB_X = 690, TAB_L = 1190;
+  var TEST_SANS_RAPIDE = /[?&]repli=1/.test(window.location.search);
+  function maint() { return new Date().getTime(); }
+  var idTele = (function () {
+    var id = null;
+    try { id = window.localStorage.getItem("id_ecran"); } catch (e) {}
+    if (!id || !/^[a-z0-9]{4}$/.test(id)) {
+      id = Math.random().toString(36).slice(2, 6); while (id.length < 4) id += "0";
+      try { window.localStorage.setItem("id_ecran", id); } catch (e) {}
+    }
+    return id;
+  })();
+  function nav() {
+    var u = navigator.userAgent || "", out = [], m;
+    m = u.match(/Android [0-9.]+/); if (m) out.push(m[0]);
+    if (/iPhone|iPad/.test(u)) out.push(/iPad/.test(u) ? "iPad" : "iPhone");
+    if (/Macintosh/.test(u) && !/Mobile/.test(u)) out.push("Mac");
+    if (/Windows/.test(u)) out.push("Windows");
+    if (/TV|AFT|BRAVIA|SMART-TV|SmartTV|Android TV/i.test(u)) out.push("TV");
+    m = u.match(/(Chrome|Firefox|Version)\/([0-9]+)/); if (m) out.push((m[1] === "Version" ? "Safari" : m[1]) + " " + m[2]);
+    return out.join(" · ");
+  }
+  function dims() {
+    var d = document.documentElement;
+    return { w: d.clientWidth || window.innerWidth, h: d.clientHeight || window.innerHeight };
+  }
+  function placer() {
+    var t = dims(), w = t.w, h = t.h, k, iw, ih;
+    var portrait = h > w * 1.1;
+    if (!portrait) {
+      k = Math.min(w / 1920, h / 1080);
+      iw = Math.round(1920 * k); ih = Math.round(1080 * k);
+      img.style.width = iw + "px"; img.style.height = ih + "px";
+      img.style.left = Math.round((w - iw) / 2) + "px"; img.style.top = Math.round((h - ih) / 2) + "px";
+      cadre.style.overflowX = "hidden"; astuce.style.display = "none";
+      mode = "paysage"; return;
+    }
+    k = w / TAB_L;
+    iw = Math.round(1920 * k); ih = Math.round(1080 * k);
+    var top = Math.max(0, Math.round((h - ih) / 2) - 20);
+    img.style.width = iw + "px"; img.style.height = ih + "px";
+    img.style.left = "0px"; img.style.top = top + "px";
+    cadre.style.overflowX = "auto";
+    if (charge && affiche === "menu") { astuce.style.display = "block"; astuce.style.top = (top + ih + 14) + "px"; }
+    if (mode !== "portrait") { cadre.scrollLeft = Math.round(TAB_X * k); }
+    mode = "portrait";
+  }
+  function lire(url, ok, ko, brut) {                  /* brut : pas de paramètre anti-cache (le relais de secours le prendrait pour un filtre) */
+    var x = new XMLHttpRequest();
+    x.open("GET", brut ? url : url + (url.indexOf("?") < 0 ? "?" : "&") + "t=" + maint(), true);
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) return;
+      if (x.status === 200) { try { ok(x.responseText); } catch (e) { ko(); } } else ko();
+    };
+    try { x.send(); } catch (e) { ko(); }
+  }
+
+  /* ---------- mesures de lecture de la vidéo (rien d'inventé : null = le navigateur ne sait pas le dire) ---------- */
+  var st = null;
+  function qualite() {
+    try {
+      if (vid.getVideoPlaybackQuality) { var q = vid.getVideoPlaybackQuality(); return { total: q.totalVideoFrames, perdues: q.droppedVideoFrames }; }
+      if (typeof vid.webkitDecodedFrameCount === "number") return { total: vid.webkitDecodedFrameCount, perdues: vid.webkitDroppedFrameCount };
+    } catch (e) {}
+    return null;
+  }
+  function demarrerMesures() {
+    var q = qualite();
+    st = { debut: maint(), boucles: 0, raccordMax: null, gelMax: null, blocages: 0, blocageMs: 0, enAttente: null,
+           images: 0, base: q, methode: vid.requestVideoFrameCallback ? "images" : "approx" };
+    var s = st;
+    if (vid.requestVideoFrameCallback) {
+      var lastNow = null, lastMT = null;
+      var cb = function (now, md) {
+        if (st !== s || typeAffiche !== "video") return;
+        if (lastNow !== null) {
+          var g = now - lastNow;
+          if (md.mediaTime < lastMT - 1) { s.boucles++; if (s.raccordMax === null || g > s.raccordMax) s.raccordMax = g; }
+          else if (s.gelMax === null || g > s.gelMax) s.gelMax = g;
+        }
+        lastNow = now; lastMT = md.mediaTime; s.images++;
+        vid.requestVideoFrameCallback(cb);
+      };
+      vid.requestVideoFrameCallback(cb);
+    } else {
+      var raf = window.requestAnimationFrame || function (f) { return setTimeout(function () { f(maint()); }, 40); };
+      var lastT = null, lastChange = null;
+      var tick = function () {
+        if (st !== s || typeAffiche !== "video") return;
+        var now = maint(), t = vid.currentTime;
+        if (lastT !== null && t !== lastT) {
+          var g = now - lastChange;
+          if (t < lastT - 1) { s.boucles++; if (s.raccordMax === null || g > s.raccordMax) s.raccordMax = g; }
+          else if (s.gelMax === null || g > s.gelMax) s.gelMax = g;
+          lastChange = now;
+        }
+        if (lastT === null) lastChange = now;
+        lastT = t;
+        raf(tick);
+      };
+      raf(tick);
+    }
+  }
+  function resumeMesures() {
+    if (!st || typeAffiche !== "video") return null;
+    var q = qualite(), d = (maint() - st.debut) / 1000, out = {
+      duree_s: Math.round(d), boucles: st.boucles, methode: st.methode,
+      raccord_max_ms: st.raccordMax === null ? null : Math.round(st.raccordMax),
+      gel_max_ms: st.gelMax === null ? null : Math.round(st.gelMax),
+      blocages: st.blocages, blocage_ms: st.blocageMs + (st.enAttente ? maint() - st.enAttente : 0),
+      ips: st.methode === "images" && d > 2 ? Math.round(st.images / d * 10) / 10 : null, images: null };
+    if (q && st.base) out.images = { total: q.total - st.base.total, perdues: q.perdues - st.base.perdues };
+    return out;
+  }
+  vid.addEventListener("waiting", function () { if (st && typeAffiche === "video") { st.blocages++; st.enAttente = maint(); } });
+  vid.addEventListener("playing", function () { if (st && st.enAttente) { st.blocageMs += maint() - st.enAttente; st.enAttente = null; } });
+
+  /* ---------- catalogue (liste fermée) ---------- */
+  var catalogue = null, typeAffiche = "menu", voulu = "menu";
+  var FICHIER = /^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.(jpg|jpeg|png|mp4)$/;
+  function trouver(id, n) {                            /* -> {cle, type, src} seulement si le contenu est au catalogue */
+    if (id === "menu") return { cle: "menu", type: "menu" };
+    if (!catalogue) return null;
+    for (var i = 0; i < catalogue.length; i++) {
+      var c = catalogue[i];
+      if (c.id !== id) continue;
+      if ((c.type === "video" || c.type === "image") && !n && c.fichier && FICHIER.test(c.fichier))
+        return { cle: id, type: c.type, src: c.fichier };
+      if (c.type === "ecrans" && n && c.ecrans && n >= 1 && n <= c.ecrans.length && FICHIER.test(c.ecrans[n - 1].fichier || ""))
+        return { cle: id + "." + n, type: "image", src: c.ecrans[n - 1].fichier };
+      return null;
+    }
+    return null;
+  }
+  function premiereVideo() {
+    if (!catalogue) return videoSrc;
+    for (var i = 0; i < catalogue.length; i++) if (catalogue[i].type === "video" && FICHIER.test(catalogue[i].fichier || "")) return catalogue[i].fichier;
+    return videoSrc;
+  }
+  function placerEcran() {
+    var t = dims(), k = Math.min(t.w / 1920, t.h / 1080), iw = Math.round(1920 * k), ih = Math.round(1080 * k), im = document.getElementById("ecranImg");
+    im.style.width = iw + "px"; im.style.height = ih + "px";
+    im.style.left = Math.round((t.w - iw) / 2) + "px"; im.style.top = Math.round((t.h - ih) / 2) + "px";
+  }
+  var ecranBox = document.getElementById("ecranBox"), ecranImg = document.getElementById("ecranImg");
+  function etablir(cle, type) {
+    if (affiche !== cle) { affiche = cle; depuis = maint(); }
+    typeAffiche = type; erreur = ""; accuser();
+  }
+
+  /* ---------- affichage ---------- */
+  function montrerMenu() {
+    voulu = "menu";
+    cadre.style.visibility = "visible"; ecranBox.style.display = "none";
+    try { vid.pause(); } catch (e) {}
+    st = null; etablir("menu", "menu"); placer();
+  }
+  function montrerImage(c) {
+    if (affiche === c.cle) { accuser(); return; }
+    var n = new Image();
+    n.onload = function () {
+      if (voulu !== c.cle) return;
+      ecranImg.src = c.src; placerEcran(); ecranBox.style.display = "block";   /* posée par-dessus : jamais de noir */
+      try { vid.pause(); } catch (e) {}
+      st = null; astuce.style.display = "none"; etablir(c.cle, "image");
+    };
+    n.onerror = function () { if (voulu === c.cle) { erreur = "image introuvable"; accuser(); } };
+    n.src = c.src;
+  }
+  function montrerVideo(c) {
+    if (affiche === c.cle) { accuser(); return; }
+    if (vid.getAttribute("src") !== c.src) { vid.setAttribute("src", c.src); }
+    vid.muted = true;
+    var fait = false;
+    var basculer = function () {
+      if (fait || voulu !== c.cle || affiche === c.cle) return;
+      fait = true; astuce.style.display = "none";
+      cadre.style.visibility = "hidden"; ecranBox.style.display = "none";   /* ce qui était affiché ne s'efface qu'une fois la vidéo en route */
+      typeAffiche = "video"; demarrerMesures(); etablir(c.cle, "video");
+    };
+    var t0 = vid.currentTime, essais = 0;
+    var guetter = function () {                        /* attend qu'une image ait vraiment avancé */
+      if (fait || voulu !== c.cle) return;
+      if (!vid.paused && vid.currentTime !== t0 && vid.readyState >= 2) { basculer(); return; }
+      if (++essais > 300) { erreur = "la vidéo ne démarre pas sur cet écran (30 s)"; accuser(); return; }
+      setTimeout(guetter, 100);
+    };
+    try {
+      var p = vid.play();
+      if (p && p.then) p.then(function () {}, function () { erreur = "lecture automatique refusée par le navigateur"; accuser(); });
+    } catch (e) { erreur = "lecture impossible : " + e; accuser(); }
+    guetter();
+  }
+  function afficher(id, n) {
+    var c = trouver(id, n);
+    if (!c) return false;                              /* pas au catalogue : ignoré */
+    voulu = c.cle;
+    if (c.type === "menu") montrerMenu(); else if (c.type === "video") montrerVideo(c); else montrerImage(c);
+    return true;
+  }
+  function commande(texte, retenue) {
+    var m = /^([a-z][a-z0-9_]{0,19})(\.([0-9]{1,2}))?:([a-z0-9]{1,24})$/.exec(texte || "");
+    if (!m) return;                                    /* tout le reste est ignoré : liste fermée */
+    if (retenue && premiereConnexion) return;          /* page tout juste ouverte : on reste sur le menu */
+    var id = m[1], n = m[3] ? parseInt(m[3], 10) : 0;
+    if (!trouver(id, n)) { derniereCmd = m[4]; erreur = "contenu inconnu de cette page"; accuser(); return; }
+    derniereCmd = m[4]; afficher(id, n);
+  }
+
+  /* ---------- accusés ---------- */
+  function message() {
+    var t = dims();
+    return JSON.stringify({ ecran: idTele, affiche: affiche, depuis: depuis, vu: maint(), cmd: derniereCmd,
+      taille: t.w + "x" + t.h, nav: nav(), voie: voie, erreur: erreur, lecture: resumeMesures(), menu: menuV });
+  }
+  var dernierRepli = 0, dernierEtatRepli = "";
+  function accuser() {
+    var m = message();
+    if (client && connecte) {
+      try { var x = new Paho.MQTT.Message(m); x.destinationName = canal + "a"; x.qos = 0; x.retained = true; client.send(x); } catch (e) {}
+    } else if (repliActif && canal) {                  /* voie lente : seulement sur changement, ou toutes les 10 min */
+      var cle = affiche + "|" + derniereCmd + "|" + erreur;
+      if (cle !== dernierEtatRepli || maint() - dernierRepli > 600000) {
+        dernierEtatRepli = cle; dernierRepli = maint();
+        try { var p = new XMLHttpRequest(); p.open("POST", "https://ntfy.sh/" + canal + "a", true); p.send(m); } catch (e) {}
+      }
+    }
+  }
+
+  /* ---------- voie rapide ---------- */
+  function ecouter() {
+    if (!canal || client || TEST_SANS_RAPIDE || !window.Paho || !window.WebSocket) { lancerRepli(); return; }
+    try {
+      client = new Paho.MQTT.Client("broker.emqx.io", 8084, "/mqtt", "tv" + idTele + Math.floor(Math.random() * 1e9));
+      client.onMessageArrived = function (m) { if (m.destinationName === canal + "c") commande(String(m.payloadString), m.retained); };
+      client.onConnectionLost = function () { connecte = false; premiereConnexion = false;   /* à la reconnexion, le dernier choix retenu s'applique */
+        voie = repliActif ? "repli" : "aucune"; setTimeout(connecter, 10000); };
+      connecter();
+      setTimeout(function () { if (!connecte) lancerRepli(); }, 20000);
+    } catch (e) { client = null; lancerRepli(); }
+  }
+  function connecter() {
+    try {
+      client.connect({ useSSL: true, timeout: 15, keepAliveInterval: 30, cleanSession: true,
+        onSuccess: function () {
+          connecte = true; voie = "rapide";
+          try { client.subscribe(canal + "c", { qos: 0 }); } catch (e) {}
+          accuser();
+        },
+        onFailure: function () { connecte = false; setTimeout(connecter, 15000); } });
+    } catch (e) { setTimeout(connecter, 15000); }
+  }
+  /* ---------- repli : ntfy.sh interrogé toutes les 15 s (seulement si la voie rapide ne marche pas) ---------- */
+  var depuisRepli = null;
+  function lancerRepli() {
+    if (repliActif || !canal) return;
+    repliActif = true; depuisRepli = Math.floor(maint() / 1000);
+    if (!connecte) voie = "repli";
+    var tour = function () {
+      if (connecte) { setTimeout(tour, 15000); return; }
+      voie = "repli";
+      lire("https://ntfy.sh/" + canal + "c/json?poll=1&since=" + depuisRepli, function (t) {
+        var lignes = t.split("\n"), dernier = null, i, o;
+        for (i = 0; i < lignes.length; i++) {
+          if (!lignes[i]) continue;
+          try { o = JSON.parse(lignes[i]); } catch (e) { continue; }
+          if (o && o.event === "message") { dernier = o; if (o.time >= depuisRepli) depuisRepli = o.time + 1; }
+        }
+        if (dernier) commande(String(dernier.message), false);
+        accuser();
+      }, function () {}, true);
+      setTimeout(tour, 15000);
+    };
+    tour();
+  }
+
+  /* ---------- état du menu ---------- */
+  function lireCatalogue() {
+    lire("contenus.json", function (t) {
+      var c = JSON.parse(t);
+      if (c && c.contenus && c.contenus.length) {
+        catalogue = c.contenus;
+        var v = premiereVideo();
+        if (v && charge && vid.getAttribute("preload") === "none") { vid.setAttribute("preload", "auto"); vid.setAttribute("src", v); }
+        reprendreApresRechargement();
+      }
+    }, function () {});
+  }
+  function verifier() {
+    lireCatalogue();
+    lire("etat.json", function (t) {
+      var e = JSON.parse(t);
+      if (!e || !e.v || !e.image) return;
+      if (e.video && /^[a-z0-9_-]+\.mp4$/.test(e.video)) videoSrc = e.video;
+      if (e.canal && /^[a-z0-9]{16,40}$/.test(e.canal) && !canal) { canal = e.canal; ecouter(); }
+      if (e.v === menuV) return;
+      var n = new Image();
+      n.onload = function () {
+        img.src = e.image; menuV = e.v; charge = true; attente.style.display = "none";
+        mode = null; placer();
+        var v0 = premiereVideo();
+        if (v0 && vid.getAttribute("preload") === "none") { vid.setAttribute("preload", "auto"); vid.setAttribute("src", v0); }
+        reprendreApresRechargement();
+      };
+      n.src = e.image;
+    }, function () {});
+  }
+  /* rechargement complet des 6 h (propreté de la mémoire) : la page reprend ce qu'elle affichait juste avant */
+  var repris = false;
+  function reprendreApresRechargement() {
+    if (repris || !catalogue || !charge) return; repris = true;
+    var a = null;
+    try { a = window.sessionStorage.getItem("affiche_avant_rechargement"); window.sessionStorage.removeItem("affiche_avant_rechargement"); } catch (e) {}
+    var m = /^([a-z][a-z0-9_]{0,19})(\.([0-9]{1,2}))?$/.exec(a || "");
+    if (m && m[1] !== "menu") afficher(m[1], m[3] ? parseInt(m[3], 10) : 0);
+  }
+  function plein() {
+    var d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen || d.mozRequestFullScreen || d.msRequestFullscreen;
+    if (f) { try { f.call(d); } catch (e) {} }
+  }
+  window.onresize = function () { placer(); placerEcran(); };
+  document.onkeydown = plein; document.onclick = plein;
+  placer(); verifier();
+  setInterval(verifier, 120000);
+  setInterval(accuser, 10000);                         /* signe de vie toutes les 10 s (voie rapide) */
+  setInterval(function () {
+    if (maint() - debut > 6 * 3600 * 1000) lire("etat.json", function () {
+      try { window.sessionStorage.setItem("affiche_avant_rechargement", affiche); } catch (e) {}
+      window.location.reload();
+    }, function () {});
+  }, 600000);
+})();
+</script>
+</body>
+</html>
