@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Essai</title>
+<style>
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; cursor: none; }
+video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #000; object-fit: contain; }
+#aide { position: absolute; left: 0; right: 0; top: 46%; text-align: center; color: #777; font: 28px sans-serif; display: none; }
+</style>
+</head>
+<body>
+<video id="v" src="hiver_neige_1080p_10s.mp4" autoplay muted loop playsinline preload="auto"></video>
+<div id="aide">Appuyez sur OK</div>
+<script>
+/* Essai de lecture en boucle sur la télé du magasin (14/11/2026). Clip libre de droits (Pixabay, n° 191724). */
+(function () {
+  var v = document.getElementById("v"), aide = document.getElementById("aide");
+  v.muted = true;
+  function lancer() {
+    try { var p = v.play(); if (p && p.then) p.then(function () { aide.style.display = "none"; }, function () {}); } catch (e) {}
+    var d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen || d.mozRequestFullScreen || d.msRequestFullscreen;
+    if (f) { try { f.call(d); } catch (e) {} }
+  }
+  document.onkeydown = lancer; document.onclick = lancer;
+  setTimeout(function () { if (v.paused) aide.style.display = "block"; }, 4000);
+  v.onplaying = function () { aide.style.display = "none"; };
+  lancer();
+})();
+</script>
+</body>
+</html>

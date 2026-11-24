@@ -1,0 +1,11 @@
+{
+ "_lisez_moi": "Catalogue des contenus que la télé du magasin peut afficher (liste fermée). Ajouter un contenu : déposer ses fichiers dans contenus/<nom>/ puis ajouter une entrée ici, et publier. Types : image (fichier), video (fichier mp4 1080p, vignette), ecrans (liste d'écrans 1920x1080 : fichier, titre, chiffres). « chiffres »: true = jamais atteint par suivant/précédent, confirmation avant envoi à la télé. Le menu est toujours le premier contenu et l'affichage par défaut. Mode d'emploi : affichage_fixe/LISEZ_MOI_affichage_fixe_2026-11-14.md",
+ "contenus": [
+  {
+   "id": "menu",
+   "titre": "Menu suivi de la caisse (en service)",
+   "type": "menu",
+   "vignette": "contenus/menu_statut/vignette-fc0cf1ac35.jpg"
+  }
+ ]
+}
